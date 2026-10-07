@@ -33,6 +33,7 @@ import AdminRankings from '../components/AdminRankings';
 import { apiGetMyTeam, apiGetMe, apiSubmit } from '../api/client';
 
 const CAPS = { top: 2, bottom: 2 };
+const TEAMS_REQUIRING_FULL_CAPS = ['artemis', 'e2e'];
 
 const COLUMN_DEFS = [
   {
@@ -119,6 +120,10 @@ export default function PlacementPage() {
   const assignedCount = columns.top.length + columns.mid.length + columns.bottom.length;
   const allAssigned   = totalMembers > 0 && assignedCount === totalMembers;
   const progress      = totalMembers > 0 ? Math.round((assignedCount / totalMembers) * 100) : 0;
+
+  const capsRequired  = TEAMS_REQUIRING_FULL_CAPS.includes(teamName.toLowerCase());
+  const capsValid     = !capsRequired || (columns.top.length === 2 && columns.bottom.length === 2);
+  const canSubmit     = allAssigned && capsValid;
 
   const onDragEnd = useCallback(
     (result) => {
@@ -264,6 +269,7 @@ export default function PlacementPage() {
             <InfoIcon sx={{ color: '#3949ab', fontSize: 16, flexShrink: 0 }} />
             <Typography variant="body2" sx={{ color: '#1a237e', fontWeight: 500, fontSize: '0.775rem', lineHeight: 1.4 }}>
               Drag members from <strong>Unrated</strong> into <strong>Top</strong> (max&nbsp;2), <strong>Mid</strong>, or <strong>Bottom</strong> (max&nbsp;2). Rate all {totalMembers} members to unlock submission.
+              {capsRequired && <><br />Your team requires <strong>exactly 2 in Top</strong> and <strong>exactly 2 in Bottom</strong> to submit.</>}
             </Typography>
           </Paper>
         ) : (
@@ -296,16 +302,28 @@ export default function PlacementPage() {
         <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, px: 2.5, py: 1.25, borderRadius: 2, background: '#fff', border: '1px solid #e0e0e0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.8375rem' }}>
-              {submitted ? 'Rating Complete' : allAssigned ? 'Ready to Submit' : `${totalMembers - assignedCount} member${totalMembers - assignedCount === 1 ? '' : 's'} not yet rated`}
+              {submitted
+                ? 'Rating Complete'
+                : !allAssigned
+                  ? `${totalMembers - assignedCount} member${totalMembers - assignedCount === 1 ? '' : 's'} not yet rated`
+                  : !capsValid
+                    ? 'Top & Bottom must each have exactly 2'
+                    : 'Ready to Submit'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-              {submitted ? 'Ratings have been finalized and saved.' : allAssigned ? 'All members rated. Review and confirm to submit.' : 'Rate all team members to enable submission.'}
+              {submitted
+                ? 'Ratings have been finalized and saved.'
+                : !allAssigned
+                  ? 'Rate all team members to enable submission.'
+                  : !capsValid
+                    ? `Top has ${columns.top.length}/2 · Bottom has ${columns.bottom.length}/2 — fill both to submit.`
+                    : 'All members rated. Review and confirm to submit.'}
             </Typography>
           </Box>
 
-          <Tooltip title={submitted ? 'Already submitted — locked' : !allAssigned ? `${totalMembers - assignedCount} member(s) still unrated` : 'Submit ratings'} placement="top">
+          <Tooltip title={submitted ? 'Already submitted — locked' : !allAssigned ? `${totalMembers - assignedCount} member(s) still unrated` : !capsValid ? `Top needs ${2 - columns.top.length} more · Bottom needs ${2 - columns.bottom.length} more` : 'Submit ratings'} placement="top">
             <span>
-              <Button variant="contained" size="medium" disabled={!allAssigned || submitted || submitLoading}
+              <Button variant="contained" size="medium" disabled={!canSubmit || submitted || submitLoading}
                 startIcon={submitted ? <CheckCircleIcon /> : submitLoading ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
                 onClick={() => setSubmitOpen(true)}
                 sx={{ minWidth: 160, py: 1, fontSize: '0.875rem', bgcolor: submitted ? '#2e7d32 !important' : undefined, '&.Mui-disabled': { background: '#e0e0e0 !important', color: '#9e9e9e !important' } }}>
