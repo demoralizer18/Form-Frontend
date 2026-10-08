@@ -88,7 +88,7 @@ export default function PlacementPage() {
         const me = await apiGetMe();
         setIsAdmin(me.is_admin);
         setSubmitted(me.has_submitted);
-        if (!me.is_admin) {
+        if (!me.is_admin && !me.has_submitted) {
           const teamData = await apiGetMyTeam();
           setTeamName(teamData.team ?? '');
           // Build initial columns: all members in pool
@@ -177,6 +177,11 @@ export default function PlacementPage() {
         </Box>
       </Box>
     );
+  }
+
+  // ── Already submitted — show blank white screen ───────────────────────────
+  if (submitted) {
+    return <Box sx={{ height: '100vh', background: '#fff' }} />;
   }
 
   return (
