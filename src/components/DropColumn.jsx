@@ -6,12 +6,10 @@ import {
 import { Droppable } from '@hello-pangea/dnd';
 import MemberCard from './MemberCard';
 import PeopleIcon from '@mui/icons-material/People';
-import LockIcon from '@mui/icons-material/Lock';
 
-export default function DropColumn({ columnDef, members, cap }) {
+export default function DropColumn({ columnDef, members }) {
   const isPool = columnDef.id === 'pool';
   const count = members.length;
-  const isFull = cap !== null && count >= cap;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -42,45 +40,25 @@ export default function DropColumn({ columnDef, members, cap }) {
           >
             {columnDef.label}
           </Typography>
-          {cap !== null && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: columnDef.color,
-                opacity: 0.65,
-                fontSize: '0.66rem',
-                fontWeight: 500,
-              }}
-            >
-              {isFull ? `Full (${cap}/${cap})` : `${count}/${cap} — ${cap - count} slot${cap - count === 1 ? '' : 's'} left`}
-            </Typography>
-          )}
-          {cap === null && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: columnDef.color,
-                opacity: 0.65,
-                fontSize: '0.66rem',
-                fontWeight: 500,
-              }}
-            >
-              {columnDef.description}
-            </Typography>
-          )}
+          <Typography
+            variant="caption"
+            sx={{
+              color: columnDef.color,
+              opacity: 0.65,
+              fontSize: '0.66rem',
+              fontWeight: 500,
+            }}
+          >
+            {columnDef.description}
+          </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {isFull && (
-            <LockIcon
-              sx={{ fontSize: 13, color: columnDef.color, opacity: 0.6 }}
-            />
-          )}
           <Chip
             label={count}
             size="small"
             sx={{
-              bgcolor: isFull ? columnDef.color : columnDef.color,
+              bgcolor: columnDef.color,
               color: '#fff',
               fontWeight: 700,
               minWidth: 26,

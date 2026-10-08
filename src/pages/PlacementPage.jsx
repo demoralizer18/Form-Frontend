@@ -15,7 +15,6 @@ import {
   IconButton,
   Divider,
   Alert,
-  Snackbar,
   CircularProgress,
 } from '@mui/material';
 import {
@@ -24,16 +23,12 @@ import {
   CheckCircle as CheckCircleIcon,
   Info as InfoIcon,
   Send as SendIcon,
-  Block as BlockIcon,
   AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import DropColumn from '../components/DropColumn';
 import SubmitDialog from '../components/SubmitDialog';
 import AdminRankings from '../components/AdminRankings';
 import { apiGetMyTeam, apiGetMe, apiSubmit } from '../api/client';
-
-const CAPS = { top: 2, bottom: 2 };
-const TEAMS_REQUIRING_FULL_CAPS = ['artemis', 'e2e'];
 
 const COLUMN_DEFS = [
   {
@@ -47,7 +42,7 @@ const COLUMN_DEFS = [
   {
     id: 'top',
     label: 'Top',
-    description: 'Max 2 members',
+    description: 'No limit',
     color: '#1a237e',
     lightColor: '#e8eaf6',
     borderColor: '#3949ab',
@@ -63,7 +58,7 @@ const COLUMN_DEFS = [
   {
     id: 'bottom',
     label: 'Bottom',
-    description: 'Max 2 members',
+    description: 'No limit',
     color: '#bf360c',
     lightColor: '#fbe9e7',
     borderColor: '#e64a19',
@@ -75,7 +70,6 @@ export default function PlacementPage() {
   const [columns, setColumns] = useState({ pool: [], top: [], mid: [], bottom: [] });
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [capToast, setCapToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -121,10 +115,6 @@ export default function PlacementPage() {
   const allAssigned   = totalMembers > 0 && assignedCount === totalMembers;
   const progress      = totalMembers > 0 ? Math.round((assignedCount / totalMembers) * 100) : 0;
 
-  const capsRequired  = TEAMS_REQUIRING_FULL_CAPS.includes(teamName.toLowerCase());
-  const capsValid     = !capsRequired || (columns.top.length === 2 && columns.bottom.length === 2);
-  const canSubmit     = allAssigned && capsValid;
-
   const onDragEnd = useCallback(
     (result) => {
       if (submitted) return;
@@ -134,24 +124,6 @@ export default function PlacementPage() {
 
       const destId = destination.droppableId;
       const srcId  = source.droppableId;
-
-      if (destId !== srcId && CAPS[destId] !== undefined) {
-        setColumns((prev) => {
-          if (prev[destId].length >= CAPS[destId]) return prev;
-          const next = { pool: [...prev.pool], top: [...prev.top], mid: [...prev.mid], bottom: [...prev.bottom] };
-          const [moved] = next[srcId].splice(source.index, 1);
-          next[destId].splice(destination.index, 0, moved);
-          return next;
-        });
-        setColumns((prev) => {
-          const colLabel = COLUMN_DEFS.find((c) => c.id === destId)?.label ?? destId;
-          if (prev[destId].length >= CAPS[destId]) {
-            setCapToast(`${colLabel} is full — max ${CAPS[destId]} members allowed.`);
-          }
-          return prev;
-        });
-        return;
-      }
 
       setColumns((prev) => {
         const next = { pool: [...prev.pool], top: [...prev.top], mid: [...prev.mid], bottom: [...prev.bottom] };
@@ -268,8 +240,7 @@ export default function PlacementPage() {
           <Paper elevation={0} sx={{ px: 2, py: 1, borderRadius: 2, background: '#e8eaf6', border: '1px solid #c5cae9', display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
             <InfoIcon sx={{ color: '#3949ab', fontSize: 16, flexShrink: 0 }} />
             <Typography variant="body2" sx={{ color: '#1a237e', fontWeight: 500, fontSize: '0.775rem', lineHeight: 1.4 }}>
-              Drag members from <strong>Unrated</strong> into <strong>Top</strong> (max&nbsp;2), <strong>Mid</strong>, or <strong>Bottom</strong> (max&nbsp;2). Rate all {totalMembers} members to unlock submission.
-              {capsRequired && <><br />Your team requires <strong>exactly 2 in Top</strong> and <strong>exactly 2 in Bottom</strong> to submit.</>}
+              Drag members from <strong>Unrated</strong> into <strong>Top</strong>, <strong>Mid</strong>, or <strong>Bottom</strong>. Rate all {totalMembers} members to unlock submission.
             </Typography>
           </Paper>
         ) : (
@@ -292,7 +263,7 @@ export default function PlacementPage() {
                 transition: 'box-shadow 0.2s ease',
                 '&:hover': { boxShadow: submitted ? 'none' : '0 4px 16px rgba(0,0,0,0.08)' },
               }}>
-                <DropColumn columnDef={col} members={columns[col.id]} cap={CAPS[col.id] ?? null} />
+                <DropColumn columnDef={col} members={columns[col.id]} />
               </Paper>
             ))}
           </Box>
@@ -302,28 +273,16 @@ export default function PlacementPage() {
         <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, px: 2.5, py: 1.25, borderRadius: 2, background: '#fff', border: '1px solid #e0e0e0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.8375rem' }}>
-              {submitted
-                ? 'Rating Complete'
-                : !allAssigned
-                  ? `${totalMembers - assignedCount} member${totalMembers - assignedCount === 1 ? '' : 's'} not yet rated`
-                  : !capsValid
-                    ? 'Top & Bottom must each have exactly 2'
-                    : 'Ready to Submit'}
+              {submitted ? 'Rating Complete' : allAssigned ? 'Ready to Submit' : `${totalMembers - assignedCount} member${totalMembers - assignedCount === 1 ? '' : 's'} not yet rated`}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-              {submitted
-                ? 'Ratings have been finalized and saved.'
-                : !allAssigned
-                  ? 'Rate all team members to enable submission.'
-                  : !capsValid
-                    ? `Top has ${columns.top.length}/2 · Bottom has ${columns.bottom.length}/2 — fill both to submit.`
-                    : 'All members rated. Review and confirm to submit.'}
+              {submitted ? 'Ratings have been finalized and saved.' : allAssigned ? 'All members rated. Review and confirm to submit.' : 'Rate all team members to enable submission.'}
             </Typography>
           </Box>
 
-          <Tooltip title={submitted ? 'Already submitted — locked' : !allAssigned ? `${totalMembers - assignedCount} member(s) still unrated` : !capsValid ? `Top needs ${2 - columns.top.length} more · Bottom needs ${2 - columns.bottom.length} more` : 'Submit ratings'} placement="top">
+          <Tooltip title={submitted ? 'Already submitted — locked' : !allAssigned ? `${totalMembers - assignedCount} member(s) still unrated` : 'Submit ratings'} placement="top">
             <span>
-              <Button variant="contained" size="medium" disabled={!canSubmit || submitted || submitLoading}
+              <Button variant="contained" size="medium" disabled={!allAssigned || submitted || submitLoading}
                 startIcon={submitted ? <CheckCircleIcon /> : submitLoading ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
                 onClick={() => setSubmitOpen(true)}
                 sx={{ minWidth: 160, py: 1, fontSize: '0.875rem', bgcolor: submitted ? '#2e7d32 !important' : undefined, '&.Mui-disabled': { background: '#e0e0e0 !important', color: '#9e9e9e !important' } }}>
@@ -335,12 +294,6 @@ export default function PlacementPage() {
       </Box>
 
       <SubmitDialog open={submitOpen} onClose={() => setSubmitOpen(false)} onConfirm={handleSubmit} placementData={columns} columnDefs={COLUMN_DEFS} />
-
-      <Snackbar open={Boolean(capToast)} autoHideDuration={2800} onClose={() => setCapToast('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="warning" icon={<BlockIcon fontSize="small" />} onClose={() => setCapToast('')} sx={{ borderRadius: 2, fontWeight: 500, fontSize: '0.8125rem' }}>
-          {capToast}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

@@ -25,7 +25,7 @@ export const COLUMNS = [
   {
     id: 'top',
     label: 'Top',
-    description: 'Max 2 members',
+    description: 'No limit',
     color: '#1a237e',
     lightColor: '#e8eaf6',
     borderColor: '#3949ab',
@@ -41,7 +41,7 @@ export const COLUMNS = [
   {
     id: 'bottom',
     label: 'Bottom',
-    description: 'Max 2 members',
+    description: 'No limit',
     color: '#bf360c',
     lightColor: '#fbe9e7',
     borderColor: '#e64a19',
