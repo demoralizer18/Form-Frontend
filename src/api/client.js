@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const BASE_URL = 'https://form-backend-wsxz.onrender.com';
 
 function authHeader() {
   const token = sessionStorage.getItem('auth_token');
